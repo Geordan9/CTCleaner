@@ -61,5 +61,11 @@
     <None Include="App.config" />
     <None Include="GeoDotNetKey.pfx" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\GCLILib\GCLILib\GCLILib.csproj">
+      <Project>{b27d5994-7531-4b23-a40f-9cdb6bbc045b}</Project>
+      <Name>GCLILib</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

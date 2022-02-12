@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CTCleaner", "CTCleaner\CTCl
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{3B0B7DBE-4463-4ED6-9671-EF62F282F74A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCLILib", "..\GCLILib\GCLILib\GCLILib.csproj", "{B27D5994-7531-4B23-A40F-9CDB6BBC045B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,9 +19,16 @@ Global
 		{517B00A9-595E-42A9-AD51-F1E310877E29}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{517B00A9-595E-42A9-AD51-F1E310877E29}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{517B00A9-595E-42A9-AD51-F1E310877E29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B27D5994-7531-4B23-A40F-9CDB6BBC045B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B27D5994-7531-4B23-A40F-9CDB6BBC045B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B27D5994-7531-4B23-A40F-9CDB6BBC045B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B27D5994-7531-4B23-A40F-9CDB6BBC045B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B27D5994-7531-4B23-A40F-9CDB6BBC045B} = {3B0B7DBE-4463-4ED6-9671-EF62F282F74A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CBA63149-D9E3-41D5-9FE1-349245B33C3D}
