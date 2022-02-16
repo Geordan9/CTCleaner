@@ -92,6 +92,15 @@ internal class Program
         },
         new()
         {
+            Name = "Full",
+            ShortOp = "-f",
+            LongOp = "--full",
+            Description =
+                "Uses all cleanup options. (Excluding Signature Removal)",
+            Flag = Options.Full
+        },
+        new()
+        {
             Name = "NoLinearXML",
             ShortOp = "-nlx",
             LongOp = "--nolinearxml",
@@ -175,11 +184,21 @@ internal class Program
 
         if (options.HasFlag(Options.Repair))
         {
-            Console.WriteLine($"Repairing...");
+            Console.WriteLine("Repairing...");
             stream = new MemoryStream(Encoding.UTF8.GetBytes(XMLRepair(File.ReadAllText(file.FullName))));
         }
         else
-            stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        {
+            try
+            {
+                stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage(ex.Message);
+                return;
+            }
+        }
 
         document.Load(stream);
         var navigator = document.CreateNavigator();
@@ -196,7 +215,7 @@ internal class Program
 
         if (options.HasFlag(Options.RemoveSignature))
         {
-            Console.WriteLine("Removing signature..."); 
+            Console.WriteLine("Removing signature...");
             foreach (XPathNavigator nav in navigator.Select("//Signature"))
                 removeNodeList.Add(nav);
         }
@@ -244,19 +263,9 @@ internal class Program
             if (nav.ValueAsInt == 1)
                 removeNodeList.Add(nav);
 
-        foreach (var nav in removeNodeList)
-            nav.DeleteSelf();
-
-        removeNodeList.Clear();
-
         foreach (XPathNavigator nav in navigator.Select("//Color"))
             if (nav.Value == "000000")
                 removeNodeList.Add(nav);
-
-        foreach (var nav in removeNodeList)
-            nav.DeleteSelf();
-
-        removeNodeList.Clear();
 
         foreach (XPathNavigator nav in navigator.Select("//DropDownList"))
             if (string.IsNullOrWhiteSpace(nav.Value))
@@ -369,30 +378,51 @@ internal class Program
 
     private static string LinearizeLUA(string str, bool alwaysLua = false)
     {
-        str = string.Join("\r\n", str.Split(new string[] {"\r\n"}, StringSplitOptions.None).Select(s => s.Trim()).ToArray());
+        str = string.Join("\r\n", str.Split(new[] {"\r\n"}, StringSplitOptions.None).Select(s => s.Trim()).ToArray());
         var inLUA = alwaysLua;
         var transitioning = false;
         var inMultiLineString = false;
         var inQuotes = false;
+        var luaComment = "--";
+        var luaMultiLineStart = "[[";
+        var luaMultiLineEnd = "]]";
+        var luaBlockInit = "{$lua}";
+        var asmBlockInit = "{$asm}";
+        var enableBlockInit = "[ENABLE]";
+        var disableBlockInit = "[DISABLE]";
         for (var i = 0; i < str.Length; i++)
         {
             inQuotes ^= str[i] == '"';
-            if ((inLUA || alwaysLua) && i <= str.Length - 2 && str.Substring(i, 2) == "[[")
+            if ((inLUA || alwaysLua) && i <= str.Length - luaMultiLineStart.Length &&
+                str.Substring(i, luaMultiLineStart.Length) == luaMultiLineStart)
             {
                 inMultiLineString = true;
             }
-            else if ((inLUA || alwaysLua) && i <= str.Length - 2 && str.Substring(i, 2) == "]]")
+            else if ((inLUA || alwaysLua) && i <= str.Length - luaMultiLineEnd.Length &&
+                     str.Substring(i, luaMultiLineEnd.Length) == luaMultiLineEnd)
             {
                 inMultiLineString = false;
             }
-            else if (i <= str.Length - 6 && str.Substring(i, 6) == "{$lua}")
+            else if (i <= str.Length - luaBlockInit.Length &&
+                     str.Substring(i, luaBlockInit.Length).ToLower() == luaBlockInit)
             {
                 inLUA = true;
                 transitioning = true;
             }
-            else if (i <= str.Length - 6 && str.Substring(i, 6) == "{$asm}")
+            else if (i <= str.Length - asmBlockInit.Length &&
+                     str.Substring(i, asmBlockInit.Length).ToLower() == asmBlockInit)
             {
                 inLUA = false;
+                transitioning = true;
+            }
+            else if (i <= str.Length - enableBlockInit.Length &&
+                     str.Substring(i, enableBlockInit.Length).ToUpper() == enableBlockInit)
+            {
+                transitioning = true;
+            }
+            else if (i <= str.Length - disableBlockInit.Length &&
+                     str.Substring(i, disableBlockInit.Length).ToUpper() == disableBlockInit)
+            {
                 transitioning = true;
             }
 
@@ -400,7 +430,12 @@ internal class Program
 
             if (!inQuotes && !inMultiLineString && (inLUA || alwaysLua) &&
                 (str[i] == '\n' || i <= str.Length - 2 && str.Substring(i, 2) == "\r\n") &&
-                !(i <= str.Length - (6 + procedingWhitespaces) && str.Substring(i + procedingWhitespaces, 6) == "{$asm}"))
+                !(i <= str.Length - (asmBlockInit.Length + procedingWhitespaces) &&
+                  str.Substring(i + procedingWhitespaces, asmBlockInit.Length).ToLower() == asmBlockInit) &&
+                !(i <= str.Length - (enableBlockInit.Length + procedingWhitespaces) &&
+                  str.Substring(i + procedingWhitespaces, enableBlockInit.Length).ToUpper() == enableBlockInit) &&
+                !(i <= str.Length - (disableBlockInit.Length + procedingWhitespaces) &&
+                  str.Substring(i + procedingWhitespaces, disableBlockInit.Length).ToUpper() == disableBlockInit))
             {
                 if (str[i] == '\n')
                 {
@@ -424,11 +459,12 @@ internal class Program
                 }
             }
 
-            if (!inQuotes && !inMultiLineString && (inLUA || alwaysLua) && i <= str.Length - 2 &&
-                str.Substring(i, 2) == "--" && i <= str.Length - 4 && str.Substring(i + 2, 2) != "[[")
+            if (!inQuotes && !inMultiLineString && (inLUA || alwaysLua) && i <= str.Length - luaComment.Length &&
+                str.Substring(i, luaComment.Length) == luaComment && i <= str.Length - 4 &&
+                str.Substring(i + luaComment.Length, luaMultiLineStart.Length) != luaMultiLineStart)
             {
-                str = str.Insert(i + 2, "[[");
-                str = str.Insert(i + str.Skip(i).TakeWhile(c => c != '\r' && c != '\n').Count(), "]]");
+                str = str.Insert(i + luaComment.Length, luaMultiLineStart);
+                str = str.Insert(i + str.Skip(i).TakeWhile(c => c != '\r' && c != '\n').Count(), luaMultiLineEnd);
             }
         }
 
@@ -516,6 +552,7 @@ internal class Program
         RemoveSignature = 0x20,
         RemoveStructures = 0x40,
         RemoveUserDefinedSymbols = 0x80,
-        NoLinearXML = 0x100000
+        Full = 0xFFFFFDF,
+        NoLinearXML = 0x10000000
     }
 }

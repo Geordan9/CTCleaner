@@ -55,7 +55,6 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Util\Extension\DirectoryInfoExtension.cs" />
-    <Compile Include="Util\Extension\StringExtension.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
